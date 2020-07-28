@@ -44,23 +44,6 @@ include(FetchDusk)
 
 enable_testing()
 
-### Exporting bindings
-### Requried since FORTRAN stencil only works with bindings
-include(FetchContent)
-FetchContent_Declare(
-  cpp_bindgen
-  GIT_REPOSITORY https://github.com/GridTools/cpp_bindgen.git
-  GIT_TAG        master # consider replacing master by a tagged version
-)
-FetchContent_MakeAvailable(cpp_bindgen)
-
-add_library(libcpp_bindgen_generator STATIC IMPORTED)
-add_library(libcpp_bindgen_handle STATIC IMPORTED)
-set_target_properties( libcpp_bindgen_generator PROPERTIES IMPORTED_LOCATION ${cpp_bindgen_BINARY_DIR}/libcpp_bindgen_generator.a )
-set_target_properties( libcpp_bindgen_handle PROPERTIES IMPORTED_LOCATION ${cpp_bindgen_BINARY_DIR}/libcpp_bindgen_handle.a )
-
-add_definitions(-DDAWN_ENABLE_BINDGEN)
-
 configure_file(${CMAKE_SOURCE_DIR}/scripts/calldusk.sh.in ${CMAKE_SOURCE_DIR}/scripts/tmp/calldusk.sh @ONLY)
 file(
     COPY  ${CMAKE_SOURCE_DIR}/scripts/tmp/calldusk.sh

@@ -61,10 +61,8 @@ function(compile_cuda_target)
     message( FATAL_ERROR "compile cuda target only accepts cpp or fortran, CMake will exit." )
   endif() 
    
-  bindgen_add_library(${ARG_TEST}_cuda 
-    SOURCES ${source_files}
-    FORTRAN_OUTPUT_DIR ${CMAKE_BINARY_DIR}/binding
-    C_OUTPUT_DIR ${CMAKE_BINARY_DIR}/binding) 
+  add_library(${ARG_TEST}_cuda 
+    SOURCES ${source_files}) 
 
   set_target_properties(${ARG_TEST}_cuda PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/binding")
 
@@ -87,7 +85,6 @@ endfunction()
 
 # both backends for dusk tests
 foreach(test ${dusk_tests})
-  message("AAAAAAAA")
   generate_codegen_target(TEST ${test} BACKEND cxx-naive) 
   generate_codegen_target(TEST ${test} BACKEND cuda)  
 
