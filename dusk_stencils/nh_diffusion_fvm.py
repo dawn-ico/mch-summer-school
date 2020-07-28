@@ -7,18 +7,18 @@ from dusk.script import (
     forward,
     backward,
     neighbors,
-    reduce_over,
+    reduce,
 )
 
 
 @stencil
 def ICON_laplacian_fvm(
-    vec: Field[Edge, K],
-    div_vec: Field[Cell, K],
-    rot_vec: Field[Vertex, K],
-    nabla2t1_vec: Field[Edge, K],
-    nabla2t2_vec: Field[Edge, K],
-    nabla2_vec: Field[Edge, K],
+    vec: Field[Edge],
+    div_vec: Field[Cell],
+    rot_vec: Field[Vertex],
+    nabla2t1_vec: Field[Edge],
+    nabla2t2_vec: Field[Edge],
+    nabla2_vec: Field[Edge],
     primal_edge_length: Field[Edge],
     dual_edge_length: Field[Edge],
     tangent_orientation: Field[Edge],
@@ -26,41 +26,41 @@ def ICON_laplacian_fvm(
     geofac_div: Field[Cell > Edge],
 ) -> None:
 
-    with levels_upward as k:
+    for _ in forward:
 
         # compute curl (on vertices)
-        rot_vec = reduce_over(
-            Vertex > Edge,
+        rot_vec = reduce(
             vec * geofac_rot,
-            sum,
-            init=0.0,
+            "+",
+            0.0,
+            Vertex > Edge,
         )
 
         # compute divergence (on cells)
-        div_vec = reduce_over(
-            Cell > Edge,
+        div_vec = reduce(
             vec * geofac_div,
-            sum,
-            init=0.0,
+            "+",
+            0.0,
+            Cell > Edge,
         )
 
         # first term of of nabla2 (gradient of curl)
-        nabla2t1_vec = reduce_over(
-            Edge > Vertex,
+        nabla2t1_vec = reduce(
             rot_vec,
-            sum,
-            init=0.0,
-            weights=[-1., 1, ],
+            "+",
+            0.0,
+            Edge > Vertex,
+            [-1., 1, ],
         )
         nabla2t1_vec = tangent_orientation*nabla2t1_vec/primal_edge_length
 
         # second term of of nabla2 (gradient of divergence)
-        nabla2t2_vec = reduce_over(
-            Edge > Cell,
+        nabla2t2_vec = reduce(
             div_vec,
-            sum,
-            init=0.0,
-            weights=[-1., 1, ],
+            "+",
+            0.0,
+            Edge > Cell,
+            [-1., 1, ],
         )
         nabla2t2_vec = tangent_orientation*nabla2t2_vec/dual_edge_length
 
