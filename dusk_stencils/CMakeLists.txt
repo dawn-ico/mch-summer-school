@@ -61,8 +61,7 @@ function(compile_cuda_target)
     message( FATAL_ERROR "compile cuda target only accepts cpp or fortran, CMake will exit." )
   endif() 
    
-  add_library(${ARG_TEST}_cuda 
-    SOURCES ${source_files}) 
+  add_library(${ARG_TEST}_cuda ${source_files}) 
 
   set_target_properties(${ARG_TEST}_cuda PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/binding")
 
