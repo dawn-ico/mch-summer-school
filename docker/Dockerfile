@@ -1,9 +1,5 @@
-# This image is intended for testing the spack installation of icondusk-e2e.
-# It can also serve as an installation tutorial for Ubuntu users.
-# As this is currently a private repo, it requires your private key as argument. 
-
-# Build with: docker build . --build-arg SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" -t icondusk-e2e-image
-# Run with: docker run -it icondusk-e2e-image
+# Build with: docker build . -t mch-summer-school-image
+# Run with: docker run -it mch-summer-school-image
 
 FROM ubuntu
 COPY ./docker-install-spack.sh /
