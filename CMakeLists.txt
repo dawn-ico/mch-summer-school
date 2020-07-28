@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(icondusk-e2e LANGUAGES CXX C Fortran)
+project(icondusk-e2e LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
