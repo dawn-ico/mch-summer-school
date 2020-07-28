@@ -1,0 +1,18 @@
+export DUSK_SRC=@dusk_SOURCE_DIR@
+export PYTHONPATH=$PYTHONPATH:${DUSK_SRC}
+
+backend=$1
+backend_arg=""
+if [ "$backend" = "cxx-naive" ]; then
+  backend_arg="ico-naive"
+elif [ "$backend" = "cuda" ]; then
+  backend_arg="ico-cuda"
+else
+  echo "backend : $backend not supported"
+  exit 1
+fi
+
+infile=$2
+outfile=$3
+echo "generating ... @PYTHON_EXECUTABLE@ ${DUSK_SRC}/dusk/cli.py -b $backend_arg $infile -o $outfile"
+@PYTHON_EXECUTABLE@ ${DUSK_SRC}/dusk/cli.py -b $backend_arg $infile -o $outfile
