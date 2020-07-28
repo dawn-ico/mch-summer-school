@@ -50,45 +50,30 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
   //===------------------------------------------------------------------------------------------===//
   // helper lambdas to readily construct atlas fields and views on one line
   //===------------------------------------------------------------------------------------------===//
-  auto MakeAtlasField = [&](const std::string &name, int size, int ksize)
+  auto MakeAtlasField = [&](const std::string &name, int size)
       -> std::tuple<atlas::Field, atlasInterface::Field<dawn::float_type>> {
 #if DAWN_PRECISION == DAWN_SINGLE_PRECISION
     atlas::Field field_F{name, atlas::array::DataType::real32(),
-                         atlas::array::make_shape(size, ksize)};
+                         atlas::array::make_shape(size, k_size)};
 #elif DAWN_PRECISION == DAWN_DOUBLE_PRECISION
     atlas::Field field_F{name, atlas::array::DataType::real64(),
-                         atlas::array::make_shape(size, ksize)};
+                         atlas::array::make_shape(size, k_size)};
 #else
 #error DAWN_PRECISION is invalid
 #endif
     return {field_F, atlas::array::make_view<dawn::float_type, 2>(field_F)};
   };
 
-  auto MakeVerticalAtlasField = [&](const std::string &name, int ksize)
-      -> std::tuple<atlas::Field,
-                    atlasInterface::VerticalField<dawn::float_type>> {
-#if DAWN_PRECISION == DAWN_SINGLE_PRECISION
-    atlas::Field field_F{name, atlas::array::DataType::real32(),
-                         atlas::array::make_shape(ksize)};
-#elif DAWN_PRECISION == DAWN_DOUBLE_PRECISION
-    atlas::Field field_F{name, atlas::array::DataType::real64(),
-                         atlas::array::make_shape(ksize)};
-#else
-#error DAWN_PRECISION is invalid
-#endif
-    return {field_F, atlas::array::make_view<dawn::float_type, 1>(field_F)};
-  };
-
   auto MakeAtlasSparseField = [&](const std::string &name, int size,
-                                  int sparseSize, int ksize)
+                                  int sparseSize)
       -> std::tuple<atlas::Field,
                     atlasInterface::SparseDimension<dawn::float_type>> {
 #if DAWN_PRECISION == DAWN_SINGLE_PRECISION
     atlas::Field field_F{name, atlas::array::DataType::real32(),
-                         atlas::array::make_shape(size, ksize, sparseSize)};
+                         atlas::array::make_shape(size, k_size, sparseSize)};
 #elif DAWN_PRECISION == DAWN_DOUBLE_PRECISION
     atlas::Field field_F{name, atlas::array::DataType::real64(),
-                         atlas::array::make_shape(size, ksize, sparseSize)};
+                         atlas::array::make_shape(size, k_size, sparseSize)};
 #else
 #error DAWN_PRECISION is invalid
 #endif
@@ -98,38 +83,38 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
   //===------------------------------------------------------------------------------------------===//
   // input field (field we want to take the laplacian of)
   //===------------------------------------------------------------------------------------------===//
-  auto [vec_F, vec] = MakeAtlasField("vec", mesh.edges().size(), k_size);
+  auto [vec_F, vec] = MakeAtlasField("vec", mesh.edges().size());
 
   //===------------------------------------------------------------------------------------------===//
   // control field holding the analytical solution for the divergence
   //===------------------------------------------------------------------------------------------===//
   auto [divVecSol_F, divVecSol] =
-      MakeAtlasField("divVecSol", mesh.cells().size(), k_size);
+      MakeAtlasField("divVecSol", mesh.cells().size());
 
   //===------------------------------------------------------------------------------------------===//
   // control field holding the analytical solution for the curl
   //===------------------------------------------------------------------------------------------===//
   auto [rotVecSol_F, rotVecSol] =
-      MakeAtlasField("rotVecSol", mesh.nodes().size(), k_size);
+      MakeAtlasField("rotVecSol", mesh.nodes().size());
 
   //===------------------------------------------------------------------------------------------===//
   // control field holding the analytical solution for Laplacian
   //===------------------------------------------------------------------------------------------===//
   auto [lapVecSol_F, lapVecSol] =
-      MakeAtlasField("lapVecSol", mesh.edges().size(), k_size);
+      MakeAtlasField("lapVecSol", mesh.edges().size());
 
   //===------------------------------------------------------------------------------------------===//
   // output field (field containing the computed laplacian)
   //===------------------------------------------------------------------------------------------===//
   auto [nabla2_vec_F_gpu, nabla2_vec_gpu] =
-      MakeAtlasField("nabla2_vec", mesh.edges().size(), k_size);
+      MakeAtlasField("nabla2_vec", mesh.edges().size());
   auto [nabla2_vec_F_cpu, nabla2_vec_cpu] =
-      MakeAtlasField("nabla2_vec", mesh.edges().size(), k_size);
+      MakeAtlasField("nabla2_vec", mesh.edges().size());
   // term 1 and term 2 of nabla for debugging
   auto [nabla2t1_vec_F, nabla2t1_vec] =
-      MakeAtlasField("nabla2t1_vec", mesh.edges().size(), k_size);
+      MakeAtlasField("nabla2t1_vec", mesh.edges().size());
   auto [nabla2t2_vec_F, nabla2t2_vec] =
-      MakeAtlasField("nabla2t2_vec", mesh.edges().size(), k_size);
+      MakeAtlasField("nabla2t2_vec", mesh.edges().size());
 
   //===------------------------------------------------------------------------------------------===//
   // intermediary fields (curl/rot and div of vec_e)
@@ -137,18 +122,18 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
 
   // rotation (more commonly curl) of vec_e on vertices
   auto [rot_vec_F_gpu, rot_vec_gpu] =
-      MakeAtlasField("rot_vec_gpu", mesh.nodes().size(), k_size);
+      MakeAtlasField("rot_vec_gpu", mesh.nodes().size());
 
   // divergence of vec_e on cells
   auto [div_vec_F_gpu, div_vec_gpu] =
-      MakeAtlasField("div_vec_gpu", mesh.cells().size(), k_size);
+      MakeAtlasField("div_vec_gpu", mesh.cells().size());
 
   auto [rot_vec_F_cpu, rot_vec_cpu] =
-      MakeAtlasField("rot_vec_cpu", mesh.nodes().size(), k_size);
+      MakeAtlasField("rot_vec_cpu", mesh.nodes().size());
 
   // divergence of vec_e on cells
   auto [div_vec_F_cpu, div_vec_cpu] =
-      MakeAtlasField("div_vec_cpu", mesh.cells().size(), k_size);
+      MakeAtlasField("div_vec_cpu", mesh.cells().size());
 
   //===------------------------------------------------------------------------------------------===//
   // sparse dimensions for computing intermediary fields
@@ -166,12 +151,12 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
   // ! not necessarily the one yelding counterclockwise rotation
   // ! around dual cell jv, a correction coefficient (equal to +-1)
   // ! is necessary, given by g%verts%edge_orientation
-  auto [geofac_rot_F, geofac_rot] = MakeAtlasSparseField(
-      "geofac_rot", mesh.nodes().size(), edgesPerVertex, 1);
+  auto [geofac_rot_F, geofac_rot] =
+      MakeAtlasSparseField("geofac_rot", mesh.nodes().size(), edgesPerVertex);
 
   auto [edge_orientation_vertex_F, edge_orientation_vertex] =
       MakeAtlasSparseField("edge_orientation_vertex", mesh.nodes().size(),
-                           edgesPerVertex, 1);
+                           edgesPerVertex);
 
   // needed for the computation of the curl/rotation. according to documentation
   // this needs to be:
@@ -185,61 +170,68 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
   //   ! coefficient (equal to +-1) is necessary, given by
   //   ! ptr_patch%grid%cells%edge_orientation)
   auto [geofac_div_F, geofac_div] =
-      MakeAtlasSparseField("geofac_div", mesh.cells().size(), edgesPerCell, 1);
+      MakeAtlasSparseField("geofac_div", mesh.cells().size(), edgesPerCell);
 
   auto [edge_orientation_cell_F, edge_orientation_cell] = MakeAtlasSparseField(
-      "edge_orientation_cell", mesh.cells().size(), edgesPerCell, 1);
+      "edge_orientation_cell", mesh.cells().size(), edgesPerCell);
 
   //===------------------------------------------------------------------------------------------===//
   // fields containing geometric information
   //===------------------------------------------------------------------------------------------===//
   auto [tangent_orientation_F, tangent_orientation] =
-      MakeAtlasField("tangent_orientation", mesh.edges().size(), 1);
+      MakeAtlasField("tangent_orientation", mesh.edges().size());
   auto [primal_edge_length_F, primal_edge_length] =
-      MakeAtlasField("primal_edge_length", mesh.edges().size(), 1);
+      MakeAtlasField("primal_edge_length", mesh.edges().size());
   auto [dual_edge_length_F, dual_edge_length] =
-      MakeAtlasField("dual_edge_length", mesh.edges().size(), 1);
+      MakeAtlasField("dual_edge_length", mesh.edges().size());
   auto [primal_normal_x_F, primal_normal_x] =
-      MakeAtlasField("primal_normal_x", mesh.edges().size(), 1);
+      MakeAtlasField("primal_normal_x", mesh.edges().size());
   auto [primal_normal_y_F, primal_normal_y] =
-      MakeAtlasField("primal_normal_y", mesh.edges().size(), 1);
+      MakeAtlasField("primal_normal_y", mesh.edges().size());
   auto [dual_normal_x_F, dual_normal_x] =
-      MakeAtlasField("dual_normal_x", mesh.edges().size(), 1);
+      MakeAtlasField("dual_normal_x", mesh.edges().size());
   auto [dual_normal_y_F, dual_normal_y] =
-      MakeAtlasField("dual_normal_y", mesh.edges().size(), 1);
+      MakeAtlasField("dual_normal_y", mesh.edges().size());
   auto [cell_area_F, cell_area] =
-      MakeAtlasField("cell_area", mesh.cells().size(), 1);
+      MakeAtlasField("cell_area", mesh.cells().size());
   auto [dual_cell_area_F, dual_cell_area] =
-      MakeAtlasField("dual_cell_area", mesh.nodes().size(), 1);
+      MakeAtlasField("dual_cell_area", mesh.nodes().size());
 
   //===------------------------------------------------------------------------------------------===//
   // initialize geometrical info on edges
   //===------------------------------------------------------------------------------------------===//
-  for (int edgeIdx = 0; edgeIdx < mesh.edges().size(); edgeIdx++) {
-    primal_edge_length(edgeIdx) = wrapper.edgeLength(mesh, edgeIdx);
-    dual_edge_length(edgeIdx) = wrapper.dualEdgeLength(mesh, edgeIdx);
-    tangent_orientation(edgeIdx) = wrapper.tangentOrientation(mesh, edgeIdx);
-    auto [nx, ny] = wrapper.primalNormal(mesh, edgeIdx);
-    primal_normal_x(edgeIdx) = nx;
-    primal_normal_y(edgeIdx) = ny;
-    // The primal normal, dual normal
-    // forms a left-handed coordinate system
-    dual_normal_x(edgeIdx) = ny;
-    dual_normal_y(edgeIdx) = -nx;
+  for (int level = 0; level < k_size; level++) {
+    for (int edgeIdx = 0; edgeIdx < mesh.edges().size(); edgeIdx++) {
+      primal_edge_length(edgeIdx, level) = wrapper.edgeLength(mesh, edgeIdx);
+      dual_edge_length(edgeIdx, level) = wrapper.dualEdgeLength(mesh, edgeIdx);
+      tangent_orientation(edgeIdx, level) =
+          wrapper.tangentOrientation(mesh, edgeIdx);
+      auto [nx, ny] = wrapper.primalNormal(mesh, edgeIdx);
+      primal_normal_x(edgeIdx, level) = nx;
+      primal_normal_y(edgeIdx, level) = ny;
+      // The primal normal, dual normal
+      // forms a left-handed coordinate system
+      dual_normal_x(edgeIdx, level) = ny;
+      dual_normal_y(edgeIdx, level) = -nx;
+    }
   }
 
   //===------------------------------------------------------------------------------------------===//
   // initialize geometrical info on cells
   //===------------------------------------------------------------------------------------------===//
-  for (int cellIdx = 0; cellIdx < mesh.cells().size(); cellIdx++) {
-    cell_area(cellIdx) = wrapper.cellArea(mesh, cellIdx);
+  for (int level = 0; level < k_size; level++) {
+    for (int cellIdx = 0; cellIdx < mesh.cells().size(); cellIdx++) {
+      cell_area(cellIdx, level) = wrapper.cellArea(mesh, cellIdx);
+    }
   }
 
   //===------------------------------------------------------------------------------------------===//
   // initialize geometrical info on vertices
   //===------------------------------------------------------------------------------------------===//
-  for (int nodeIdx = 0; nodeIdx < mesh.nodes().size(); nodeIdx++) {
-    dual_cell_area(nodeIdx) = wrapper.dualCellArea(mesh, nodeIdx);
+  for (int level = 0; level < k_size; level++) {
+    for (int nodeIdx = 0; nodeIdx < mesh.nodes().size(); nodeIdx++) {
+      dual_cell_area(nodeIdx, level) = wrapper.dualCellArea(mesh, nodeIdx);
+    }
   }
 
   //===------------------------------------------------------------------------------------------===//
