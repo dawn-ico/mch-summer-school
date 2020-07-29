@@ -52,7 +52,7 @@ file(
     )    
 
 set(dusk_tests
-  nh_diffusion_fvm
+  divergence
 )
 
 add_subdirectory(dusk_stencils)
