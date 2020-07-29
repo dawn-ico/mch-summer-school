@@ -7,6 +7,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install git -y
 RUN git config --global url."https://github.com/".insteadOf git@github.com:
+RUN apt-get install vim -y
 RUN apt-get install python3 -y
 RUN apt-get install g++-8 -y
 RUN apt-get install curl -y
@@ -15,9 +16,13 @@ RUN apt-get install cmake -y
 RUN apt-get install unzip -y
 RUN apt-get install python3-pip -y
 RUN apt-get install gfortran-8 -y
+RUN apt-get install libnetcdf-dev -y
+RUN apt-get install libnetcdf-c++4-dev -y
 RUN pip3 install pyyaml
 RUN chmod +x /docker-install-spack.sh && /docker-install-spack.sh
 WORKDIR /home/root
 ENV PATH="/home/root/spack/bin:${PATH}"
-RUN spack -C /home/root/ install mch-summer-school@master%gcc@8.4.0; exit 0
+RUN git clone https://github.com/dawn-ico/mch-summer-school
+WORKDIR /home/root/mch-summer-school
+RUN spack dev-build mch-summer-school@master
 CMD /bin/bash
