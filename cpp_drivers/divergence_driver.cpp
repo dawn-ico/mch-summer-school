@@ -36,9 +36,67 @@ static int sgn(T val) {
   return (T(0) < val) - (val < T(0));
 }
 
+void toVtk(const atlas::Mesh& mesh, int level, const std::string& fname,
+           const AtlasToCartesian& wrapper, atlasInterface::Field<double>& u,
+           atlasInterface::Field<double>& v, atlasInterface::Field<double>& div_vec,
+           atlasInterface::Field<double>& div_vec_sol) {
+  std::fstream fs;
+  fs.open(fname, std::fstream::out);
+
+  fs << "# vtk DataFile Version 3.0\n2D scalar data\nASCII\nDATASET "
+        "UNSTRUCTURED_GRID\n";
+
+  fs << "POINTS " << mesh.nodes().size() << " float\n";
+
+  for(int nodeIter = 0; nodeIter < mesh.nodes().size(); nodeIter++) {
+    auto [x, y] = wrapper.nodeLocation(nodeIter);
+    fs << x << " " << y << " "
+       << "0."
+       << "\n";
+  }
+
+  int cell_count = mesh.cells().size();
+
+  fs << "CELLS " << cell_count << " " << 4 * cell_count << "\n";
+
+  {
+    const auto& conn = mesh.cells().node_connectivity();
+    for(int cellIter = 0; cellIter < mesh.cells().size(); cellIter++) {
+      fs << "3 " << conn(cellIter, 0) << " " << conn(cellIter, 1) << " " << conn(cellIter, 2)
+         << '\n';
+    }
+  }
+
+  fs << "CELL_TYPES " << cell_count << '\n';
+
+  for(int cellIter = 0; cellIter < mesh.cells().size(); cellIter++) {
+    fs << "5\n";
+  }
+
+  fs << "CELL_DATA " << cell_count << '\n';
+  fs << "SCALARS u float 1\nLOOKUP_TABLE default\n";
+  for(int cellIter = 0; cellIter < mesh.cells().size(); cellIter++) {
+    fs << u(cellIter, level) << "\n";
+  }
+  fs << "SCALARS v float 1\nLOOKUP_TABLE default\n";
+  for(int cellIter = 0; cellIter < mesh.cells().size(); cellIter++) {
+    fs << v(cellIter, level) << "\n";
+  }
+  fs << "SCALARS div_vec float 1\nLOOKUP_TABLE default\n";
+  for(int cellIter = 0; cellIter < mesh.cells().size(); cellIter++) {
+    fs << div_vec(cellIter, level) << "\n";
+  }
+  fs << "SCALARS div_vec_sol float 1\nLOOKUP_TABLE default\n";
+  for(int cellIter = 0; cellIter < mesh.cells().size(); cellIter++) {
+    fs << div_vec_sol(cellIter, level) << "\n";
+  }
+
+  fs.close();
+}
+
 TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
   // Setup a 32 by 32 grid of quads and generate a mesh out of it
-  const int nx = 32, ny = 32;
+  const int nx = 64, ny = 32;
   auto mesh = AtlasMeshRect(nx, ny);
   const int k_size = 32;
 
@@ -86,9 +144,15 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
   auto [vec_F, vec] = MakeAtlasField("vec", mesh.edges().size());
 
   //===------------------------------------------------------------------------------------------===//
+  // cell averaged vector components of input for visualization
+  //===------------------------------------------------------------------------------------------===//
+  auto [u_F, u] = MakeAtlasField("u", mesh.cells().size());
+  auto [v_F, v] = MakeAtlasField("v", mesh.cells().size());
+
+  //===------------------------------------------------------------------------------------------===//
   // control field holding the analytical solution for the divergence
   //===------------------------------------------------------------------------------------------===//
-  auto [divVecSol_F, divVecSol] = MakeAtlasField("divVecSol", mesh.cells().size());
+  auto [div_vec_sol_F, div_vec_sol] = MakeAtlasField("divVecSol", mesh.cells().size());
 
   //===------------------------------------------------------------------------------------------===//
   // output field (field containing the computed laplacian)
@@ -186,7 +250,15 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
     }
     for(int cellIdx = 0; cellIdx < mesh.cells().size(); cellIdx++) {
       auto [xm, ym] = wrapper.cellMidpoint(mesh, cellIdx);
-      divVecSol(cellIdx, level) = analyticalDivergence(xm, ym);
+      div_vec_sol(cellIdx, level) = analyticalDivergence(xm, ym);
+    }
+  }
+  for(int level = 0; level < k_size; level++) {
+    for(int cellIdx = 0; cellIdx < mesh.cells().size(); cellIdx++) {
+      auto [xm, ym] = wrapper.cellCircumcenter(mesh, cellIdx);
+      auto [uu, vv] = sphericalHarmonic(xm, ym);
+      u(cellIdx, level) = uu;
+      v(cellIdx, level) = vv;
     }
   }
 
@@ -205,14 +277,15 @@ TEST(nh_diffusion_fvm, manufactured_and_sidebyside) {
   UnstructuredVerifier verif;
   {
     auto div_vec_v = atlas::array::make_view<double, 2>(div_vec_F);
-    auto div_vec_sol_v = atlas::array::make_view<double, 2>(divVecSol_F);
+    auto div_vec_sol_v = atlas::array::make_view<double, 2>(div_vec_sol_F);
     auto [Linf, L1, L2] = UnstructuredVerifier::getErrorNorms(wrapper.innerCells(mesh), k_size,
                                                               div_vec_v, div_vec_sol_v);
 
     std::cout << "MEASURED ERRORS: L_inf " << Linf << " "
               << " L_1 " << L1 << " L_2 " << L2 << "\n";
-    EXPECT_TRUE(Linf < 1. / nx * 1.2);
-    EXPECT_TRUE(L1 < 10 * 1. / nx);
-    EXPECT_TRUE(L2 < 2 * 1. / nx);
+    EXPECT_TRUE(Linf < 1. / std::min(nx, ny) * 1.2);
+    EXPECT_TRUE(L1 < 10 * 1. / std::min(nx, ny));
+    EXPECT_TRUE(L2 < 2 * 1. / std::min(nx, ny));
   }
+  toVtk(mesh, k_size / 2, "out.vtk", wrapper, u, v, div_vec, div_vec_sol);
 }

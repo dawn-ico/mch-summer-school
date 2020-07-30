@@ -18,6 +18,7 @@ RUN apt-get install python3-pip -y
 RUN apt-get install gfortran-8 -y
 RUN apt-get install libnetcdf-dev -y
 RUN apt-get install libnetcdf-c++4-dev -y
+RUN apt-get install paraview -y
 RUN pip3 install pyyaml
 RUN chmod +x /docker-install-spack.sh && /docker-install-spack.sh
 WORKDIR /home/root
