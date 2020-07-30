@@ -26,3 +26,4 @@ ENV PATH="/home/root/spack/bin:${PATH}"
 RUN git clone https://github.com/dawn-ico/mch-summer-school
 WORKDIR /home/root/mch-summer-school
 RUN spack dev-build mch-summer-school@master
+RUN apt-get install clang-format -y 
