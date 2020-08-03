@@ -5,14 +5,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
-#include(CompileAsCUDA)
-enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 11)
-set(CMAKE_CUDA_EXTENSIONS OFF)
-set(CMAKE_CUDA_STANDARD 14)
-
-set(CUDA_ARCH "sm_70" CACHE STRING "CUDA architecture (e.g. sm_35, sm_60, sm_70)")
-
 if(DEFINED dawn4py_DIR)
   find_path(dawn4py_spd  dawn4py PATHS ${dawn4py_DIR} PATH_SUFFIXES lib/python3.8/site-packages/)
 
